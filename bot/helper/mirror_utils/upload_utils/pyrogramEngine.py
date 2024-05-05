@@ -1,7 +1,7 @@
 from traceback import format_exc
 from logging import getLogger, ERROR
 from aiofiles.os import remove as aioremove, path as aiopath, rename as aiorename, makedirs, rmdir, mkdir
-from os import walk, path as ospath
+from os import walk, path as ospath, remove as osremove, rename as osrename
 from time import time
 from PIL import Image
 from pyrogram.types import InputMediaVideo, InputMediaDocument, InlineKeyboardMarkup
@@ -13,6 +13,7 @@ from natsort import natsorted
 from aioshutil import copy
 
 from bot import config_dict, user_data, GLOBAL_EXTENSION_FILTER, bot, user, IS_PREMIUM_USER
+from bot.modules.func import edit_video_titles
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import sendCustomMsg, sendMultiMessage, chat_info, deleteMessage, get_tg_link_content
 from bot.helper.ext_utils.fs_utils import clean_unwanted, is_archive, get_base_name
@@ -163,7 +164,7 @@ class TgUploader:
             try:
                 mention = msg_user.mention(style='HTML')
                 uid = msg_user.id
-                msg = f"<b>Task started</b>\n\n<b>• User:</b> {mention}\n<b>• ID:</b> <code>{uid}</code>"
+                msg = f"<b>Leech started</b>\n\n<b>• User:</b> {mention}\n<b>• ID:</b> <code>{uid}</code>"
                 self.__leechmsg = await sendMultiMessage(config_dict['LEECH_DUMP_ID'], msg)
             except Exception as er:
                 await self.__listener.onUploadError(str(er))
@@ -180,6 +181,9 @@ class TgUploader:
 
     async def __prepare_file(self, prefile_, dirpath):
         file_, cap_mono = await format_filename(prefile_, self.__user_id, dirpath)
+        except Exception as err:
+            LOGGER.info(format_exc())
+            return await self.__listener.onUploadError(f'Error in Format Filename : {err}')
         if prefile_ != file_:
             if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files_mltb"):
                 dirpath = f'{dirpath}/copied_mltb'
@@ -204,7 +208,7 @@ class TgUploader:
                 name = file_
                 ext = ''
             extn = len(ext)
-            remain = 64 - extn
+            remain = 64- extn
             name = name[:remain]
             if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files"):
                 dirpath = f'{dirpath}/copied'
@@ -341,6 +345,7 @@ class TgUploader:
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(3),
            retry=retry_if_exception_type(Exception))
     async def __upload_file(self, cap_mono, file, force_document=False):
+        await edit_video_titles(user_id=self.__user_id, file_path=self.__up_path)
         if self.__thumb is not None and not await aiopath.exists(self.__thumb):
             self.__thumb = None
         thumb = self.__thumb
