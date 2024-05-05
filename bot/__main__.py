@@ -42,22 +42,22 @@ async def stats(_, message):
     cpuUsage = cpu_percent(interval=0.5)
     quote = Quote.print().split('―', 1)[0].strip().replace("“", "").replace("”", "")
     limit_mapping = {
-        'Torrent'  : config_dict.get('TORRENT_LIMIT',  '∞'),
-        'Gdrive'   : config_dict.get('GDRIVE_LIMIT',   '∞'),
-        'Ytdlp'    : config_dict.get('YTDLP_LIMIT',    '∞'),
-        'Direct'   : config_dict.get('DIRECT_LIMIT',   '∞'),
-        'Leech'    : config_dict.get('LEECH_LIMIT',    '∞'),
-        'Clone'    : config_dict.get('CLONE_LIMIT',    '∞'),
-        'Mega'     : config_dict.get('MEGA_LIMIT',     '∞'),
-        'User task': config_dict.get('USER_MAX_TASKS', '∞')}
+        'Torrent🧲'  : config_dict.get('TORRENT_LIMIT',  '∞'),
+        'Gdrive☁️'   : config_dict.get('GDRIVE_LIMIT',   '∞'),
+        'Ytdlp📺'    : config_dict.get('YTDLP_LIMIT',    '∞'),
+        'Direct🎯'   : config_dict.get('DIRECT_LIMIT',   '∞'),
+        'Leech📁'    : config_dict.get('LEECH_LIMIT',    '∞'),
+        'Clone🎗️'    : config_dict.get('CLONE_LIMIT',    '∞'),
+        'MegaⓂ️'     : config_dict.get('MEGA_LIMIT',     '∞'),
+        'User task🚹': config_dict.get('USER_MAX_TASKS', '∞')}
     system_info = f'<b>{quote}</b>\n\n'\
-        f'<code>• Bot uptime :</code> {currentTime}\n'\
-        f'<code>• Sys uptime :</code> {osUptime}\n'\
-        f'<code>• CPU usage  :</code> {cpuUsage}%\n'\
-        f'<code>• RAM usage  :</code> {memory.percent}%\n'\
-        f'<code>• Disk usage :</code> {disk}%\n'\
-        f'<code>• Free space :</code> {get_readable_file_size(free)}\n'\
-        f'<code>• Total space:</code> {get_readable_file_size(total)}\n\n'
+        f'<code>• Bot uptime⏰ :</code> {currentTime}\n'\
+        f'<code>• Sys uptime✊ :</code> {osUptime}\n'\
+        f'<code>• CPU usage🖥️  :</code> {cpuUsage}%\n'\
+        f'<code>• RAM usage💽  :</code> {memory.percent}%\n'\
+        f'<code>• Disk usage📦 :</code> {disk}%\n'\
+        f'<code>• Free space🗄️ :</code> {get_readable_file_size(free)}\n'\
+        f'<code>• Total space📂:</code> {get_readable_file_size(total)}\n\n'
             
     limitations = f'<b>LIMITATIONS</b>\n\n'
     
@@ -79,10 +79,10 @@ async def stats(_, message):
 async def start(client, message):
     buttons = ButtonMaker()
     reply_markup = buttons.build_menu(2)
-    if len(message.command) > 1 and message.command[1] == "aeon":
+    if len(message.command) > 1 and message.command[1] == "boomba":
         await deleteMessage(message)
     elif len(message.command) > 1 and message.command[1] == "pmc":
-        await sendMessage(message, 'Bot started')
+        await sendMessage(message, 'Private Bot started')
         await deleteMessage(message)
     elif len(message.command) > 1 and len(message.command[1]) == 36:
         userid = message.from_user.id
@@ -118,14 +118,14 @@ async def start(client, message):
 
 
 async def restart(client, message):
-    restart_message = await sendMessage(message, 'Restarting...')
+    restart_message = await sendMessage(message, 'Restarting...😌')
     if scheduler.running:
         scheduler.shutdown(wait=False)
     for interval in [QbInterval, Interval]:
         if interval:
             interval[0].cancel()
     await sync_to_async(clean_all)
-    proc1 = await create_subprocess_exec('pkill', '-9', '-f', '-e', 'gunicorn|buffet|openstack|render|zcl')
+    proc1 = await create_subprocess_exec('pkill', '-9', '-f', '-e', 'gunicorn|buffet|openstack|render|zcl|ffmpeg|rclone|aria2c|qbittorrent-nox')
     proc2 = await create_subprocess_exec('python3', 'update.py')
     await gather(proc1.wait(), proc2.wait())
     async with aiopen(".restartmsg", "w") as f:
@@ -142,7 +142,7 @@ async def ping(_, message):
 
 
 @new_task
-async def AeonCallback(_, query):
+async def boombaCallback(_, query):
     message = query.message
     user_id = query.from_user.id
     data = query.data.split()
@@ -167,7 +167,7 @@ async def AeonCallback(_, query):
             startLine = f"<b>Showing last {ind} lines from log.txt:</b> \n\n----------<b>START LOG</b>----------\n\n"
             endLine = "\n----------<b>END LOG</b>----------"
             btn = ButtonMaker()
-            btn.ibutton('Close', f'aeon {user_id} close')
+            btn.ibutton('Close', f'boomba {user_id} close')
             reply_message = await sendMessage(message, startLine + escape(Loglines) + endLine, btn.build_menu(1))
             await query.edit_message_reply_markup(None)
             await deleteMessage(message)
@@ -187,7 +187,7 @@ async def AeonCallback(_, query):
         else:
         	  LOGGER.error(f"Web paste failed : {str(err)}")
     elif data[2] == "botpm":
-        await query.answer(url=f"https://t.me/{bot_name}?start=aeon")
+        await query.answer(url=f"https://t.me/{bot_name}?start=boomba")
     elif data[2] == "pmc":
         await query.answer(url=f"https://t.me/{bot_name}?start=pmc")
     else:
@@ -197,8 +197,8 @@ async def AeonCallback(_, query):
 @new_task
 async def log(_, message):
     buttons = ButtonMaker()
-    buttons.ibutton('Log display', f'aeon {message.from_user.id} logdisplay')
-    buttons.ibutton('Web paste', f'aeon {message.from_user.id} webpaste')
+    buttons.ibutton('Log display', f'boomba {message.from_user.id} logdisplay')
+    buttons.ibutton('Web paste', f'boomba {message.from_user.id} webpaste')
     reply_message = await sendFile(message, 'log.txt', buttons=buttons.build_menu(1))
     await deleteMessage(message)
     await five_minute_del(reply_message)
@@ -236,7 +236,7 @@ async def restart_notification():
     else:
         chat_id, msg_id = 0, 0
     if await aiopath.isfile(".restartmsg"):
-        rmsg = 'Restarted Successfully!'
+        rmsg = 'Restarted Successfully🤴'
         try:
             await bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=rmsg)
         except:
@@ -254,8 +254,8 @@ async def main():
     bot.add_handler(MessageHandler(ping, filters=command(BotCommands.PingCommand) & CustomFilters.authorized))
     bot.add_handler(MessageHandler(bot_help, filters=command(BotCommands.HelpCommand) & CustomFilters.authorized))
     bot.add_handler(MessageHandler(stats, filters=command(BotCommands.StatsCommand) & CustomFilters.authorized))
-    bot.add_handler(CallbackQueryHandler(AeonCallback, filters=regex(r'^aeon')))
-    LOGGER.info("Bot Started!")
+    bot.add_handler(CallbackQueryHandler(boombaCallback, filters=regex(r'^boomba')))
+    LOGGER.info("Private Bot Started!")
     signal(SIGINT, exit_clean_up)
 
 bot.loop.run_until_complete(main())
