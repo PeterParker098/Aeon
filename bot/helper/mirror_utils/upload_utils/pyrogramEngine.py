@@ -1,7 +1,7 @@
 from traceback import format_exc
 from logging import getLogger, ERROR
 from aiofiles.os import remove as aioremove, path as aiopath, rename as aiorename, makedirs, rmdir, mkdir
-from os import walk, path as ospath, remove as osremove, rename as osrename
+from os import walk, path as ospath
 from time import time
 from PIL import Image
 from pyrogram.types import InputMediaVideo, InputMediaDocument, InlineKeyboardMarkup
@@ -13,7 +13,6 @@ from natsort import natsorted
 from aioshutil import copy
 
 from bot import config_dict, user_data, GLOBAL_EXTENSION_FILTER, bot, user, IS_PREMIUM_USER
-from bot.modules.func import edit_video_titles
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import sendCustomMsg, sendMultiMessage, chat_info, deleteMessage, get_tg_link_content
 from bot.helper.ext_utils.fs_utils import clean_unwanted, is_archive, get_base_name
@@ -164,7 +163,7 @@ class TgUploader:
             try:
                 mention = msg_user.mention(style='HTML')
                 uid = msg_user.id
-                msg = f"<b>Leech started</b>\n\n<b>• User:</b> {mention}\n<b>• ID:</b> <code>{uid}</code>"
+                msg = f"<b>Task started</b>\n\n<b>• User:</b> {mention}\n<b>• ID:</b> <code>{uid}</code>"
                 self.__leechmsg = await sendMultiMessage(config_dict['LEECH_DUMP_ID'], msg)
             except Exception as er:
                 await self.__listener.onUploadError(str(er))
@@ -181,9 +180,6 @@ class TgUploader:
 
     async def __prepare_file(self, prefile_, dirpath):
         file_, cap_mono = await format_filename(prefile_, self.__user_id, dirpath)
-        except Exception as err:
-            LOGGER.info(format_exc())
-            return await self.__listener.onUploadError(f'Error in Format Filename : {err}')
         if prefile_ != file_:
             if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files_mltb"):
                 dirpath = f'{dirpath}/copied_mltb'
@@ -208,7 +204,7 @@ class TgUploader:
                 name = file_
                 ext = ''
             extn = len(ext)
-            remain = 64- extn
+            remain = 64 - extn
             name = name[:remain]
             if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files"):
                 dirpath = f'{dirpath}/copied'
@@ -345,7 +341,6 @@ class TgUploader:
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(3),
            retry=retry_if_exception_type(Exception))
     async def __upload_file(self, cap_mono, file, force_document=False):
-        await edit_video_titles(user_id=self.__user_id, file_path=self.__up_path)
         if self.__thumb is not None and not await aiopath.exists(self.__thumb):
             self.__thumb = None
         thumb = self.__thumb
@@ -395,114 +390,4 @@ class TgUploader:
                     thumb = await take_ss(self.__up_path, duration)
                 if thumb is not None:
                     with Image.open(thumb) as img:
-                        width, height = img.size
-                else:
-                    width = 480
-                    height = 320
-                if not self.__up_path.upper().endswith(('MKV', 'MP4')):
-                    dirpath, file_ = self.__up_path.rsplit('/', 1)
-                    if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files"):
-                        dirpath = f"{dirpath}/copied"
-                        await makedirs(dirpath, exist_ok=True)
-                        new_path = ospath.join(
-                            dirpath, f"{ospath.splitext(file_)[0]}.mp4")
-                        self.__up_path = await copy(self.__up_path, new_path)
-                    else:
-                        new_path = f"{ospath.splitext(self.__up_path)[0]}.mp4"
-                        await aiorename(self.__up_path, new_path)
-                        self.__up_path = new_path
-                if self.__is_cancelled:
-                    return
-                buttons = await self.__buttons(self.__up_path, is_video)
-                nrml_media = await self.__client.send_video(chat_id=self.__sent_msg.chat.id,
-                                                                    reply_to_message_id=self.__sent_msg.id,
-                                                                    video=self.__up_path,
-                                                                    caption=cap_mono,
-                                                                    duration=duration,
-                                                                    width=width,
-                                                                    height=height,
-                                                                    thumb=thumb,
-                                                                    supports_streaming=True,
-                                                                    disable_notification=True,
-                                                                    progress=self.__upload_progress,
-                                                                    reply_markup=buttons)
-                if self.__prm_media and (self.__has_buttons or not self.__leechmsg):
-                    try:
-                        self.__sent_msg = await bot.copy_message(nrml_media.chat.id, nrml_media.chat.id, nrml_media.id, reply_to_message_id=self.__sent_msg.id, reply_markup=buttons)
-                        if self.__sent_msg: await deleteMessage(nrml_media)
-                    except:
-                        self.__sent_msg = nrml_media
-                else:
-                    self.__sent_msg = nrml_media
-            elif is_audio:
-                key = 'audios'
-                duration, artist, title = await get_media_info(self.__up_path)
-                if self.__is_cancelled:
-                    return
-                self.__sent_msg = await self.__client.send_audio(chat_id=self.__sent_msg.chat.id,
-                                                                    reply_to_message_id=self.__sent_msg.id,
-                                                                    audio=self.__up_path,
-                                                                    caption=cap_mono,
-                                                                    duration=duration,
-                                                                    performer=artist,
-                                                                    title=title,
-                                                                    thumb=thumb,
-                                                                    disable_notification=True,
-                                                                    progress=self.__upload_progress,
-                                                                    reply_markup=await self.__buttons(self.__up_path))
-            else:
-                key = 'photos'
-                if self.__is_cancelled:
-                    return
-                self.__sent_msg = await self.__client.send_photo(chat_id=self.__sent_msg.chat.id,
-                                                                    reply_to_message_id=self.__sent_msg.id,
-                                                                    photo=self.__up_path,
-                                                                    caption=cap_mono,
-                                                                    disable_notification=True,
-                                                                    progress=self.__upload_progress,
-                                                                    reply_markup=await self.__buttons(self.__up_path))
-
-            if not self.__is_cancelled and self.__media_group and (self.__sent_msg.video or self.__sent_msg.document):
-                key = 'documents' if self.__sent_msg.document else 'videos'
-                if match := re_match(r'.+(?=\.0*\d+$)|.+(?=\.part\d+\..+)', self.__up_path):
-                    pname = match.group(0)
-                    if pname in self.__media_dict[key].keys():
-                        self.__media_dict[key][pname].append(self.__sent_msg)
-                    else:
-                        self.__media_dict[key][pname] = [self.__sent_msg]
-                    msgs = self.__media_dict[key][pname]
-                    if len(msgs) == 10:
-                        await self.__send_media_group(pname, key, msgs)
-                    else:
-                        self.__last_msg_in_group = True
-            await self.__copy_file()
-
-            if self.__thumb is None and thumb is not None and await aiopath.exists(thumb):
-                await aioremove(thumb)
-        except FloodWait as f:
-            LOGGER.warning(str(f))
-            await sleep(f.value)
-        except Exception as err:
-            if self.__thumb is None and thumb is not None and await aiopath.exists(thumb):
-                await aioremove(thumb)
-            LOGGER.error(f"{format_exc()}. Path: {self.__up_path}")
-            if 'Telegram says: [400' in str(err) and key != 'documents':
-                LOGGER.error(f"Retrying As Document. Path: {self.__up_path}")
-                return await self.__upload_file(cap_mono, file, True)
-            raise err
-
-    @property
-    def speed(self):
-        try:
-            return self.__processed_bytes / (time() - self.__start_time)
-        except:
-            return 0
-
-    @property
-    def processed_bytes(self):
-        return self.__processed_bytes
-
-    async def cancel_download(self):
-        self.__is_cancelled = True
-        LOGGER.info(f"Cancelling Upload: {self.name}")
-        await self.__listener.onUploadError('Cancelled by user!')
+          
